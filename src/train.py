@@ -28,7 +28,15 @@ if __name__ == "__main__":
     test_ds = val_ds.skip(half)
     val_ds = val_ds.take(half)
 
+    augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+        tf.keras.layers.RandomRotation(0.2),
+        tf.keras.layers.RandomZoom(0.1),
+        tf.keras.layers.RandomBrightness(0.2),
+    ])
+
     AUTOTUNE = tf.data.AUTOTUNE
+    train_ds = train_ds.map(lambda x, y: (augmentation(x, training=True), y))
     train_ds = train_ds.map(lambda x, y: (preprocess_input(x), y)).cache().prefetch(AUTOTUNE)
     val_ds = val_ds.map(lambda x, y: (preprocess_input(x), y)).cache().prefetch(AUTOTUNE)
     test_ds = test_ds.map(lambda x, y: (preprocess_input(x), y)).cache().prefetch(AUTOTUNE)
@@ -51,7 +59,8 @@ if __name__ == "__main__":
     )
 
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
 
-    with open("plant_disease    .tflite", "wb") as f:
+    with open("plant_disease.tflite", "wb") as f:
         f.write(tflite_model)
